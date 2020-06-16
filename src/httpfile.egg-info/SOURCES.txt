@@ -1,0 +1,13 @@
+README.rst
+setup.cfg
+setup.py
+src/httpfile/__init__.py
+src/httpfile/httpfile.py
+src/httpfile/wheel.py
+src/httpfile/zipfile.py
+src/httpfile.egg-info/PKG-INFO
+src/httpfile.egg-info/SOURCES.txt
+src/httpfile.egg-info/dependency_links.txt
+src/httpfile.egg-info/not-zip-safe
+src/httpfile.egg-info/requires.txt
+src/httpfile.egg-info/top_level.txt

@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: httpfile
+Version: 0.0.0
+Summary: Operate on virtualized versions of files available over http.
+Home-page: https://github.com/cosmicexplorer/httpfile
+Author: Danny McClanahan
+Author-email: danieldmcclanahan@gmail.com
+License: ISC License
+Description: ========
+        httpfile
+        ========
+        
+Keywords: http,zip,file
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: ISC License (ISCL)
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Provides-Extra: test
