@@ -3,31 +3,26 @@
 """
 
 from httpfile.httpfile import (BytesRangeRequest, Context, HttpFile,
-                               HttpFileRequest, Size, Url)
+                               HttpFileRequest, Size)
 
-from .util import StubHandler, http_server
+from .util import serve_file
 
-
-class FileHandler(StubHandler):
-    _response_text = "this is the file contents"
-    _response_path = "/some-path"
-
+_test_contents = b"this is the file contents"
 
 context = Context()
 
 
 def test_http_range():
-    with http_server(FileHandler) as port:
-        url = Url(f"http://localhost:{port}/some-path")
+    with serve_file(_test_contents) as url:
         req = HttpFileRequest(url)
-        expected = HttpFile(url=url, size=Size(len(FileHandler._response_text)))
+        expected = HttpFile(url=url, size=Size(len(_test_contents)))
         assert context.head(req) == expected
 
         get_whole_file = BytesRangeRequest(start=None, end=None)
         contents = context.range_request(expected, get_whole_file)
-        assert contents == FileHandler._response_text.encode()
+        assert contents == _test_contents
 
-        half_extent = len(FileHandler._response_text) // 2
+        half_extent = len(_test_contents) // 2
         get_half_file = BytesRangeRequest(start=None, end=Size(half_extent))
         half_contents = context.range_request(expected, get_half_file)
-        assert half_contents == FileHandler._response_text[:half_extent].encode()
+        assert half_contents == _test_contents[:half_extent]

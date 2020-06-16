@@ -57,22 +57,26 @@ class Context:
 
     @classmethod
     def _estimate_minimum_central_directory_record_size(cls, size: Size) -> Size:
-        return Size(
-            int(
-                max(
-                    cls._ABSOLUTE_MINIMUM_CENTRAL_DIRECTORY_SIZE,
-                    size.size * cls._CENTRAL_DIRECTORY_MAX_SIZE_FACTOR,
-                )
+        lower_bound = int(
+            max(
+                cls._ABSOLUTE_MINIMUM_CENTRAL_DIRECTORY_SIZE,
+                size.size * cls._CENTRAL_DIRECTORY_MAX_SIZE_FACTOR,
             )
         )
+        actual_record_size = min(lower_bound, size.size)
+        return Size(actual_record_size)
 
     def extract_zip_member_shallow(self, request: ZipFileExtractionRequest) -> bytes:
         http_file = request.http_file
         full_size = http_file.size
-        central_directory_range_request = BytesRangeRequest(
-            start=self._estimate_minimum_central_directory_record_size(full_size),
-            end=full_size,
+
+        estimated_directory_record_size = self._estimate_minimum_central_directory_record_size(
+            full_size
         )
+        central_directory_range_request = BytesRangeRequest(
+            start=(full_size - estimated_directory_record_size), end=full_size,
+        )
+
         zip_tail = self.http_context.range_request(
             http_file, central_directory_range_request
         )

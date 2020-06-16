@@ -82,7 +82,7 @@ class BytesRangeRequest:
         if self.start is None:
             start = 0
         else:
-            assert self.start <= size
+            assert self.start <= size, f"???/start={self.start},size={size}"
             start = self.start.size
 
         if self.end is None:
@@ -107,7 +107,9 @@ class Context:
     def head(self, request: HttpFileRequest) -> HttpFile:
         resp = self.session.head(request.url.url)
         resp.raise_for_status()
-        assert "bytes" in resp.headers["Accept-Ranges"]
+        assert (
+            "bytes" in resp.headers["Accept-Ranges"]
+        ), "???/bytes was not found in range headers"
         content_length = int(resp.headers["Content-Length"])
         return HttpFile(url=request.url, size=Size(content_length))
 
@@ -128,5 +130,7 @@ class Context:
             response_bytes = resp.content
 
         size_diff = byte_range.size_diff()
-        assert Size(len(response_bytes)) == size_diff
+        assert (
+            Size(len(response_bytes)) == size_diff
+        ), f"???/response should have been length {size_diff}, but got:\n{response_bytes!r}"
         return response_bytes
