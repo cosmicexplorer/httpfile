@@ -1,8 +1,6 @@
-"""
-???
-"""
-
 import shutil
+import subprocess
+import sys
 import tempfile
 import threading
 import zipfile
@@ -11,9 +9,11 @@ from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from queue import Queue
 from socketserver import TCPServer
-from typing import Iterator, Type
+from textwrap import dedent
+from typing import Iterator, List, Type
 
 from httpfile.httpfile import Url
+from httpfile.wheel import ProjectName
 
 
 @contextmanager
@@ -77,15 +77,13 @@ def serve_file(file_contents: bytes) -> Iterator[Url]:
 @contextmanager
 def mock_zip(
     single_file_path: Path, single_file_contents: bytes, *, compression: int,
-) -> Iterator[bytes]:
-    with temporary_dir() as td:
-        zip_path = td / "test.zip"
+) -> Iterator[Path]:
+    with temporary_file_path(Path("test.zip")) as zip_path:
         with zipfile.ZipFile(zip_path, mode="w", compression=compression) as zf:
             zf.writestr(str(single_file_path), single_file_contents)
         assert zip_path.exists()
 
-        with open(zip_path, "rb") as f:
-            yield f.read()
+        yield zip_path
 
 
 @contextmanager
@@ -96,7 +94,8 @@ def serve_zip(
         single_file_path=single_file_path,
         single_file_contents=single_file_contents,
         compression=compression,
-    ) as zip_contents:
+    ) as zip_path:
+        zip_contents = _read_file(zip_path)
 
         class ZipHandler(_StubHandler):
             _response_text = zip_contents
@@ -114,3 +113,69 @@ def temporary_dir() -> Iterator[Path]:
         yield Path(path)
     finally:
         shutil.rmtree(path, ignore_errors=True)
+
+
+@contextmanager
+def temporary_file_path(filename: Path) -> Iterator[Path]:
+    with temporary_dir() as td:
+        yield td / filename
+
+
+def _dump_file(path: Path, contents: bytes) -> None:
+    with open(path, "wb") as f:
+        f.write(contents)
+
+
+def _read_file(path: Path) -> bytes:
+    with open(path, "rb") as f:
+        return f.read()
+
+
+def _run_python(argv: List[str], cwd: Path) -> bytes:
+    return subprocess.check_output([sys.executable, *argv], cwd=cwd)
+
+
+@contextmanager
+def mock_wheel(name: ProjectName, *, version: str) -> Iterator[Path]:
+    with temporary_dir() as td:
+        _dump_file(
+            td / "setup.py",
+            dedent(
+                """\
+        from setuptools import setup
+        setup()
+        """
+            ).encode(),
+        )
+
+        _dump_file(
+            td / "setup.cfg",
+            dedent(
+                f"""\
+        [metadata]
+        name = {name.name}
+        version = {version}
+
+        [options]
+        install_requires =
+          requests
+        """
+            ).encode(),
+        )
+
+        _ = _run_python(["setup.py", "bdist_wheel"], cwd=td)
+        globbed_wheel = list(td.glob("dist/*.whl"))
+        assert len(globbed_wheel) == 1
+        yield globbed_wheel[0]
+
+
+@contextmanager
+def serve_wheel(name: ProjectName, *, version: str) -> Iterator[Url]:
+    with mock_wheel(name, version=version) as wheel_path:
+        wheel_contents = _read_file(wheel_path)
+
+        class WheelHandler(_StubHandler):
+            _response_text = wheel_contents
+
+        with _serve_http(WheelHandler) as url:
+            yield url

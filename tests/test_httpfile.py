@@ -1,7 +1,3 @@
-"""
-???
-"""
-
 from httpfile.httpfile import (BytesRangeRequest, Context, HttpFile,
                                HttpFileRequest, Size)
 

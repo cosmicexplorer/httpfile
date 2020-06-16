@@ -1,7 +1,3 @@
-"""
-???
-"""
-
 import re
 import zipfile
 from pathlib import Path
@@ -14,10 +10,12 @@ from .util import serve_zip
 
 context = Context()
 
+_asdf_contents = b"asdf\n"
+
 
 def test_extract_file_from_deflated_zip():
     with serve_zip(
-        Path("asdf.txt"), b"asdf\n", compression=zipfile.ZIP_DEFLATED
+        Path("asdf.txt"), _asdf_contents, compression=zipfile.ZIP_DEFLATED
     ) as url:
         req = HttpFileRequest(url)
         http_file = context.http_context.head(req)
@@ -27,4 +25,4 @@ def test_extract_file_from_deflated_zip():
             member_pattern=ZipMemberNameMatcher(re.compile(b"asdf.txtPK")),
         )
         zip_member = context.extract_zip_member_shallow(zip_req)
-        assert zip_member == b"asdf\n"
+        assert zip_member == _asdf_contents

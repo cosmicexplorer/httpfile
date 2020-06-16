@@ -1,4 +1,5 @@
 requests
+wheel
 
 [:python_version == "3.6"]
 dataclasses
